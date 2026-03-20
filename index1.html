@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Sistemas TecNM - BFS Flight Visualizer</title>
+    <style>
+        :root {
+            --bg: #050505;
+            --card: #121212;
+            --accent: #00d4ff;
+            --text: #e0e0e0;
+            --border: #222;
+            --success: #00ff88;
+            --code-bg: #1a1a1a;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px;
+            margin: 0;
+        }
+
+        .container { width: 100%; max-width: 950px; }
+        
+        .header { text-align: center; margin-bottom: 30px; border-bottom: 1px solid var(--border); padding-bottom: 20px; }
+        h1 { color: var(--accent); margin: 0; font-size: 1.8rem; letter-spacing: 1px; }
+        .subtitle { color: #666; font-size: 0.9rem; margin-top: 5px; }
+
+        /* Controles */
+        .controls {
+            background: var(--card);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        select, button {
+            background: #1a1a1a;
+            color: white;
+            border: 1px solid var(--border);
+            padding: 10px 15px;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        button { background: var(--accent); color: black; font-weight: bold; border: none; cursor: pointer; transition: 0.3s; }
+        button:hover { box-shadow: 0 0 15px var(--accent); }
+
+        /* Resultado */
+        .ruta-container {
+            background: rgba(0, 212, 255, 0.05);
+            border: 1px dashed var(--accent);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            display: none;
+        }
+
+        .nodo-ruta {
+            display: inline-flex;
+            background: #1a1a1a;
+            padding: 8px 15px;
+            border-radius: 6px;
+            border: 1px solid var(--accent);
+            font-weight: bold;
+            color: var(--accent);
+        }
+
+        /* Visualización del Árbol */
+        .tree-viz {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 40px;
+        }
+
+        .paso-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            position: relative;
+        }
+
+        .lvl-tag { color: #555; font-size: 0.65rem; display: block; margin-bottom: 5px; }
+
+        /* Código de Python */
+        .code-section {
+            background: var(--code-bg);
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 40px;
+        }
+
+        pre {
+            margin: 0;
+            overflow-x: auto;
+            color: #dcdcaa;
+            font-family: 'Consolas', monospace;
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h1>Ingeniería de Sistemas: BFS Visualizer</h1>
+            <div class="subtitle">Red de Vuelos basada en Diagrama de Clase (Jilotepec, Edo. Méx)</div>
+        </div>
+
+        <div class="controls">
+            <select id="origen"><option value="" disabled selected>Origen</option></select>
+            <select id="destino"><option value="" disabled selected>Destino</option></select>
+            <button onclick="iniciarBFS()">Calcular Ruta Óptima</button>
+        </div>
+
+        <div id="ruta-final" class="ruta-container">
+            <h3 style="margin:0 0 15px 0; color:var(--success)">✔ Solución Encontrada (BFS):</h3>
+            <div id="camino-chips"></div>
+        </div>
+
+        <h3 id="tree-title" style="display:none; color:#555; font-size: 0.9rem;">Orden de Exploración de la Frontera:</h3>
+        <div id="visual-tree" class="tree-viz"></div>
+
+        <div class="code-section">
+            <h4 style="margin:0 0 10px 0; color:#888; font-size: 0.8rem;">EVIDENCIA: Lógica del Algoritmo (Python Core)</h4>
+<pre>
+def buscar_solucion_BFS(estado_inicial, solucion):
+    solucionado = False
+    nodos_visitados = []
+    nodos_frontera = []
+
+    nodo_inicial = Nodo(estado_inicial)
+    nodos_frontera.append(nodo_inicial)
+
+    while (not solucionado) and len(nodos_frontera) != 0:
+        nodo = nodos_frontera.pop(0) # FIFO
+        nodos_visitados.append(nodo)
+
+        if nodo.get_datos() == solucion:
+            solucionado = True
+            return nodo
+        else:
+            # Expansión de hijos según Grafo de Adyacencia
+            # ...
+</pre>
+        </div>
+    </div>
+
+    <script>
+        // EL GRAFO DE TU IMAGEN
+        const grafo = {
+            'CDMX': ['JILOYORK', 'QRO', 'SLP', 'ZACATECAS', 'TAMAULIPAS', 'MONTERREY', 'MORELOS', 'HIDALGO'],
+            'JILOYORK': ['CDMX', 'QRO'],
+            'QRO': ['JILOYORK', 'CDMX', 'ZACATECAS'],
+            'SLP': ['CDMX', 'ZACATECAS'],
+            'ZACATECAS': ['SLP', 'QRO', 'CDMX', 'GDL'],
+            'GDL': ['ZACATECAS', 'TAMAULIPAS'],
+            'TAMAULIPAS': ['GDL', 'CDMX'],
+            'MONTERREY': ['CDMX'],
+            'MORELOS': ['CDMX', 'HIDALGO'],
+            'HIDALGO': ['CDMX', 'MORELOS']
+        };
+
+        const sO = document.getElementById('origen');
+        const sD = document.getElementById('destino');
+        Object.keys(grafo).sort().forEach(c => {
+            sO.add(new Option(c, c));
+            sD.add(new Option(c, c));
+        });
+
+        function iniciarBFS() {
+            const start = sO.value;
+            const end = sD.value;
+            if(!start || !end) return;
+
+            const treeViz = document.getElementById('visual-tree');
+            const rutaBox = document.getElementById('ruta-final');
+            const chips = document.getElementById('camino-chips');
+            document.getElementById('tree-title').style.display = "block";
+
+            treeViz.innerHTML = "";
+            chips.innerHTML = "";
+            rutaBox.style.display = "none";
+
+            let queue = [{ nombre: start, padre: null, nivel: 0 }];
+            let visitados = new Set();
+            visitados.add(start);
+            
+            let finalNode = null;
+
+            while(queue.length > 0) {
+                let actual = queue.shift();
+                
+                const card = document.createElement('div');
+                card.className = 'paso-card';
+                if(actual.nombre === end) card.style.borderColor = "var(--success)";
+                
+                let vecinos = grafo[actual.nombre] || [];
+                let hijosHtml = "";
+                
+                vecinos.forEach(v => {
+                    if(!visitados.has(v)) {
+                        visitados.add(v);
+                        queue.push({ nombre: v, padre: actual, nivel: actual.nivel + 1 });
+                        hijosHtml += `<div style="color:#666; font-size:0.75rem">↳ ${v}</div>`;
+                    }
+                });
+
+                card.innerHTML = `
+                    <span class="lvl-tag">PROFUNDIDAD ${actual.nivel}</span>
+                    <strong style="color:var(--accent)">${actual.nombre}</strong>
+                    <div style="margin-top:5px">${hijosHtml || '<small style="color:#444">Sin hijos nuevos</small>'}</div>
+                `;
+                treeViz.appendChild(card);
+
+                if(actual.nombre === end) {
+                    finalNode = actual;
+                    break;
+                }
+            }
+
+            if(finalNode) {
+                rutaBox.style.display = "block";
+                let path = [];
+                let curr = finalNode;
+                while(curr) {
+                    path.push(curr.nombre);
+                    curr = curr.padre;
+                }
+                path.reverse().forEach((c, i) => {
+                    chips.innerHTML += `<span class="nodo-ruta">${c}</span>`;
+                    if(i < path.length - 1) chips.innerHTML += ` <span style="color:#444"> ➔ </span> `;
+                });
+            }
+        }
+    </script>
+</body>
+</html>
