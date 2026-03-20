@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>BFS Visualizer - Deep Dark Mode</title>
+    <style>
+        :root {
+            --bg: #050505;
+            --card: #121212;
+            --accent: #00d4ff;
+            --text: #e0e0e0;
+            --border: #222;
+            --success: #00ff88;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px;
+            margin: 0;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            color: var(--accent);
+            letter-spacing: -1px;
+            text-transform: uppercase;
+            font-size: 1.5rem;
+        }
+
+        /* Panel de Control */
+        .controls {
+            background: var(--card);
+            padding: 25px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+
+        select, button {
+            background: #1a1a1a;
+            color: white;
+            border: 1px solid var(--border);
+            padding: 12px 20px;
+            border-radius: 8px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        button {
+            background: var(--accent);
+            color: black;
+            font-weight: bold;
+            border: none;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            box-shadow: 0 0 15px var(--accent);
+            transform: translateY(-2px);
+        }
+
+        /* Ruta Final */
+        .ruta-container {
+            background: rgba(0, 212, 255, 0.05);
+            border: 1px dashed var(--accent);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            display: none;
+        }
+
+        .nodo-ruta {
+            display: inline-flex;
+            align-items: center;
+            background: #1a1a1a;
+            padding: 8px 15px;
+            border-radius: 6px;
+            border: 1px solid var(--accent);
+            font-weight: bold;
+            color: var(--accent);
+        }
+
+        /* Árbol de Exploración Visual */
+        .tree-viz {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .paso-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            position: relative;
+        }
+
+        .paso-card.active {
+            border-color: var(--success);
+        }
+
+        .lvl-tag {
+            position: absolute;
+            top: 5px;
+            right: 10px;
+            color: #555;
+            font-size: 0.7rem;
+        }
+
+        .hijo-item {
+            display: block;
+            margin-top: 5px;
+            color: #888;
+            padding-left: 10px;
+            border-left: 1px solid #333;
+        }
+
+        .destaque { color: var(--success); }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h1>Algoritmo BFS: Exploración de Nodos</h1>
+            <p style="color: #666;">Visualiza cómo el agente recorre el árbol de estados</p>
+        </div>
+
+        <div class="controls">
+            <select id="origen"></select>
+            <select id="destino"></select>
+            <button onclick="iniciarBFS()">Calcular y Desplegar</button>
+        </div>
+
+        <div id="ruta-final" class="ruta-container">
+            <h3 style="margin-top:0; color:var(--success)">✔ Ruta Óptima Encontrada:</h3>
+            <div id="camino-chips"></div>
+        </div>
+
+        <h3 id="tree-title" style="display:none; color:#555">Nodos Explorados (Orden de Visita):</h3>
+        <div id="visual-tree" class="tree-viz"></div>
+    </div>
+
+    <script>
+        const grafo = {
+            'CDMX': ['Guadalajara', 'Monterrey', 'Cancún', 'Mérida'],
+            'Guadalajara': ['CDMX', 'Puerto Vallarta', 'Tijuana'],
+            'Monterrey': ['CDMX', 'Cancún', 'Tijuana'],
+            'Cancún': ['CDMX', 'Monterrey', 'Mérida'],
+            'Mérida': ['CDMX', 'Cancún'],
+            'Puerto Vallarta': ['Guadalajara'],
+            'Tijuana': ['Guadalajara', 'Monterrey']
+        };
+
+        // Inicializar selects
+        const sO = document.getElementById('origen');
+        const sD = document.getElementById('destino');
+        Object.keys(grafo).sort().forEach(c => {
+            sO.add(new Option(c, c));
+            sD.add(new Option(c, c));
+        });
+
+        function iniciarBFS() {
+            const start = sO.value;
+            const end = sD.value;
+            const treeViz = document.getElementById('visual-tree');
+            const rutaBox = document.getElementById('ruta-final');
+            const chips = document.getElementById('camino-chips');
+
+            treeViz.innerHTML = "";
+            chips.innerHTML = "";
+            rutaBox.style.display = "none";
+            document.getElementById('tree-title').style.display = "block";
+
+            let queue = [{ nombre: start, padre: null, nivel: 0 }];
+            let visitados = new Set();
+            visitados.add(start);
+            
+            let finalNode = null;
+
+            // Bucle principal del BFS
+            while(queue.length > 0) {
+                let actual = queue.shift();
+                
+                // Crear Card Visual para el "Árbol"
+                const card = document.createElement('div');
+                card.className = 'paso-card';
+                if(actual.nombre === end) card.className += ' active';
+                
+                let hijosHtml = "";
+                let vecinos = grafo[actual.nombre] || [];
+                
+                vecinos.forEach(v => {
+                    const isNew = !visitados.has(v);
+                    hijosHtml += `<span class="hijo-item ${isNew ? '' : 'visitado'}">${isNew ? '↳ ' : '• '} ${v}</span>`;
+                    if(isNew) {
+                        visitados.add(v);
+                        queue.push({ nombre: v, padre: actual, nivel: actual.nivel + 1 });
+                    }
+                });
+
+                card.innerHTML = `
+                    <span class="lvl-tag">NIVEL ${actual.nivel}</span>
+                    <strong style="color:var(--accent)">${actual.nombre}</strong><br>
+                    <small style="color:#555">Expandiendo a:</small>
+                    ${hijosHtml}
+                `;
+                treeViz.appendChild(card);
+
+                if(actual.nombre === end) {
+                    finalNode = actual;
+                    break;
+                }
+            }
+
+            // Mostrar Ruta Final
+            if(finalNode) {
+                rutaBox.style.display = "block";
+                let path = [];
+                let curr = finalNode;
+                while(curr) {
+                    path.push(curr.nombre);
+                    curr = curr.padre;
+                }
+                path.reverse().forEach((c, i) => {
+                    chips.innerHTML += `<span class="nodo-ruta">${c}</span>`;
+                    if(i < path.length - 1) chips.innerHTML += ` <span style="color:#444">──</span> `;
+                });
+            }
+        }
+    </script>
+</body>
+</html>
